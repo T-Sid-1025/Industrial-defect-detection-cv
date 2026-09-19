@@ -4,11 +4,7 @@
 
 **Computer vision + explainable AI + simulated PLC integration for automated visual quality inspection**
 
-![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white)
-![TensorFlow](https://img.shields.io/badge/TensorFlow-MobileNetV2-orange?logo=tensorflow&logoColor=white)
-![OpenCV](https://img.shields.io/badge/OpenCV-Image%20Processing-5C3EE8?logo=opencv&logoColor=white)
-![Flask](https://img.shields.io/badge/Flask-Web%20Dashboard-black?logo=flask&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-green)
+`Python` · `TensorFlow / Keras` · `OpenCV` · `Flask` · `MobileNetV2`
 
 </div>
 
@@ -25,23 +21,6 @@ same shape as a real industrial inspection station.
 
 > Built end-to-end: data pipeline → transfer-learning model → explainability
 > → a live web dashboard → simulated automation output.
-
----
-
-## 🖼️ Demo
-
-<!--
-  Add 2-3 screenshots here before sharing the repo — it makes a huge
-  difference to anyone skimming it. Suggested shots:
-  1. The dashboard with a PASS result
-  2. The dashboard with a DEFECT result + Grad-CAM heatmap visible
-  3. The Inspection History table with a few rows
-
-  Save them in a `screenshots/` folder and reference like this:
--->
-| Dashboard — Pass | Dashboard — Defect + Grad-CAM |
-|---|---|
-| ![pass](screenshots/pass_result.png) | ![defect](screenshots/defect_result.png) |
 
 ---
 
