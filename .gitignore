@@ -1,0 +1,15 @@
+venv/
+__pycache__/
+*.pyc
+model/*.h5
+dataset/good/*.jpg
+dataset/good/*.jpeg
+dataset/good/*.png
+dataset/defective/*.jpg
+dataset/defective/*.jpeg
+dataset/defective/*.png
+test_images/*.jpg
+test_images/*.png
+output/*.jpg
+output/*.png
+.DS_Store

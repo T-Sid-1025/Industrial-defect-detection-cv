@@ -1,0 +1,14 @@
+{
+  "architecture": "MobileNetV2 (transfer learning)",
+  "image_size": [
+    160,
+    160
+  ],
+  "good_images": 519,
+  "defective_images": 781,
+  "total_images": 1300,
+  "epochs_trained": 15,
+  "final_val_accuracy": 0.9189,
+  "final_val_loss": 0.1898,
+  "trained_at": "2026-09-19T14:21:47"
+}

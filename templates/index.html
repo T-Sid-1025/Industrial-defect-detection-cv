@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Line 4 Inspection — Defect Detection</title>
+<style>
+  :root {
+    --graphite: #1b1f24;
+    --panel: #23282f;
+    --panel-raised: #2b313a;
+    --steel: #6b7684;
+    --steel-light: #9aa4b1;
+    --amber: #f2a93b;
+    --amber-dim: #a97a2c;
+    --pass-green: #4caf6d;
+    --fail-red: #e0554a;
+    --border: #363c45;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--graphite);
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    background-attachment: fixed;
+    color: #e8eaed;
+    font-family: 'Segoe UI', -apple-system, sans-serif;
+    min-height: 100vh;
+  }
+
+  header {
+    padding: 22px 32px;
+    border-bottom: 2px solid var(--amber);
+    background: rgba(27,31,36,0.92);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  header h1 {
+    font-size: 1.3rem;
+    margin: 0;
+    letter-spacing: 0.3px;
+    font-weight: 600;
+  }
+
+  header .station {
+    color: var(--steel-light);
+    font-size: 0.85rem;
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    padding: 4px 10px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    color: var(--steel-light);
+  }
+
+  .status-pill .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--steel);
+  }
+  .status-pill.ready .dot { background: var(--pass-green); }
+  .status-pill.error .dot { background: var(--fail-red); }
+
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px;
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 24px;
+  }
+
+  @media (max-width: 860px) {
+    main { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 24px;
+  }
+
+  .panel h2 {
+    margin: 0 0 4px 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--steel-light);
+  }
+  .panel .sub {
+    color: var(--steel);
+    font-size: 0.82rem;
+    margin-bottom: 18px;
+  }
+
+  #dropzone {
+    border: 2px dashed var(--border);
+    border-radius: 4px;
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    position: relative;
+  }
+  #dropzone:hover, #dropzone.drag {
+    border-color: var(--amber);
+    background: rgba(242,169,59,0.05);
+  }
+  #dropzone .icon { font-size: 2rem; margin-bottom: 8px; opacity: 0.7; }
+  #dropzone .hint { color: var(--steel); font-size: 0.8rem; margin-top: 6px; }
+  #fileInput { display: none; }
+
+  #previewWrap {
+    display: none;
+    text-align: center;
+  }
+  #previewWrap img {
+    max-width: 100%;
+    max-height: 320px;
+    border-radius: 4px;
+    border: 3px solid var(--border);
+  }
+  #previewWrap.ok img { border-color: var(--pass-green); }
+  #previewWrap.fail img { border-color: var(--fail-red); }
+
+  .actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  button {
+    font-family: inherit;
+    font-size: 0.85rem;
+    padding: 10px 16px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    background: var(--panel-raised);
+    color: #e8eaed;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  button:hover { border-color: var(--amber-dim); }
+  button.primary {
+    background: var(--amber);
+    color: #1b1f24;
+    border-color: var(--amber);
+    font-weight: 600;
+  }
+  button.primary:hover { background: #f7b859; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  #resultCard {
+    margin-top: 20px;
+    display: none;
+    border-radius: 4px;
+    padding: 18px 20px;
+    border: 1px solid var(--border);
+  }
+  #resultCard.ok { border-color: var(--pass-green); background: rgba(76,175,109,0.08); }
+  #resultCard.fail { border-color: var(--fail-red); background: rgba(224,85,74,0.08); }
+
+  #resultCard .label {
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  #resultCard.ok .label { color: var(--pass-green); }
+  #resultCard.fail .label { color: var(--fail-red); }
+
+  #resultCard .conf {
+    color: var(--steel-light);
+    font-size: 0.85rem;
+    margin-top: 4px;
+  }
+
+  .meter {
+    height: 6px;
+    background: var(--panel-raised);
+    border-radius: 3px;
+    margin-top: 10px;
+    overflow: hidden;
+  }
+  .meter-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--steel);
+    transition: width 0.5s ease;
+  }
+  #resultCard.ok .meter-fill { background: var(--pass-green); }
+  #resultCard.fail .meter-fill { background: var(--fail-red); }
+
+  /* PLC log panel */
+  #logPanel {
+    background: #14171b;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 16px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 0.78rem;
+    height: 260px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column-reverse;
+  }
+  #logPanel .line { padding: 3px 0; border-bottom: 1px solid #1f242a; color: var(--steel-light); }
+  #logPanel .line .ts { color: var(--steel); margin-right: 8px; }
+  #logPanel .line.reject { color: var(--fail-red); }
+  #logPanel .line.pass { color: var(--pass-green); }
+  #logPanel .empty { color: var(--steel); text-align: center; padding: 20px 0; }
+
+  .stat-row {
+    display: flex;
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .stat {
+    flex: 1;
+    background: var(--panel-raised);
+    border-radius: 4px;
+    padding: 12px 14px;
+    text-align: center;
+  }
+  .stat .n { font-size: 1.4rem; font-weight: 700; }
+  .stat .l { font-size: 0.72rem; color: var(--steel); margin-top: 2px; }
+  .stat.reject .n { color: var(--fail-red); }
+  .stat.pass .n { color: var(--pass-green); }
+
+  footer {
+    text-align: center;
+    color: var(--steel);
+    font-size: 0.75rem;
+    padding: 20px;
+  }
+
+  .info-strip {
+    max-width: 1100px;
+    margin: 20px auto 0 auto;
+    padding: 0 32px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+  @media (max-width: 860px) {
+    .info-strip { grid-template-columns: repeat(2, 1fr); }
+  }
+  .info-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 16px;
+  }
+  .info-card .v {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--amber);
+  }
+  .info-card .l {
+    font-size: 0.72rem;
+    color: var(--steel);
+    margin-top: 2px;
+  }
+
+  #historyPanel {
+    max-width: 1100px;
+    margin: 0 auto 32px auto;
+    padding: 0 32px;
+  }
+  #historyPanel .panel { padding: 24px; }
+  .history-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  table.history {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 14px;
+    font-size: 0.85rem;
+  }
+  table.history th {
+    text-align: left;
+    color: var(--steel);
+    font-weight: 600;
+    font-size: 0.72rem;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  table.history td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  table.history img {
+    width: 40px; height: 40px;
+    object-fit: cover;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+  }
+  table.history .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+  table.history .tag.ok { background: rgba(76,175,109,0.15); color: var(--pass-green); }
+  table.history .tag.fail { background: rgba(224,85,74,0.15); color: var(--fail-red); }
+  #historyEmpty { color: var(--steel); text-align: center; padding: 24px 0; font-size: 0.85rem; }
+
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Automated Visual Inspection</h1>
+    <div class="station">Station 04 &middot; Casting Line &middot; Defect Classifier</div>
+  </div>
+  <div class="status-pill" id="statusPill"><span class="dot"></span><span id="statusText">Checking model...</span></div>
+</header>
+
+<div id="infoStrip" class="info-strip"></div>
+
+<main>
+  <section class="panel">
+    <h2>Inspect a Part</h2>
+    <div class="sub">Upload a product image to run it through the classifier.</div>
+
+    <div id="dropzone">
+      <div class="icon">&#128247;</div>
+      <div>Drop image(s) here, or click to browse</div>
+      <div class="hint">JPG or PNG &middot; multiple files supported</div>
+      <input type="file" id="fileInput" accept="image/*" multiple>
+    </div>
+
+    <div id="previewWrap">
+      <img id="previewImg" alt="Uploaded part">
+      <div id="batchNote" class="hint" style="display:none; margin-top:8px;"></div>
+    </div>
+
+    <div class="actions">
+      <button class="primary" id="inspectBtn" disabled>Run Inspection</button>
+      <button id="resetBtn">Clear</button>
+    </div>
+
+    <div id="resultCard">
+      <div class="label" id="resultLabel">—</div>
+      <div class="conf" id="resultConf">—</div>
+      <div class="meter"><div class="meter-fill" id="meterFill"></div></div>
+      <div id="heatmapWrap" style="display:none; margin-top:16px;">
+        <div class="hint" style="margin-bottom:6px;">Model attention (Grad-CAM) — highlights the region that drove this decision</div>
+        <img id="heatmapImg" alt="Grad-CAM attention heatmap" style="max-width:100%; border-radius:4px; border:1px solid var(--border);">
+      </div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat pass"><div class="n" id="passCount">0</div><div class="l">PASSED</div></div>
+      <div class="stat reject"><div class="n" id="rejectCount">0</div><div class="l">REJECTED</div></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>PLC Signal Log</h2>
+    <div class="sub">Simulated automation output — what would be sent to the line controller.</div>
+    <div id="logPanel">
+      <div class="empty">Waiting for first inspection...</div>
+    </div>
+  </section>
+</main>
+
+<div id="historyPanel">
+  <section class="panel">
+    <div class="history-head">
+      <h2 style="margin:0;">Inspection History</h2>
+      <button id="exportBtn">Export CSV</button>
+    </div>
+    <div class="sub">Every part inspected in this session.</div>
+    <div id="historyEmpty">No inspections yet.</div>
+    <table class="history" id="historyTable" style="display:none;">
+      <thead>
+        <tr><th></th><th>File</th><th>Result</th><th>Confidence</th><th>Time</th></tr>
+      </thead>
+      <tbody id="historyBody"></tbody>
+    </table>
+  </section>
+</div>
+
+<footer>Real-time CV inspection prototype &middot; PLC signal is simulated for demo purposes</footer>
+
+<script>
+let selectedFiles = [];
+let passCount = 0;
+let rejectCount = 0;
+let historyRows = []; // {filename, label, confidence, time}
+
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const previewWrap = document.getElementById('previewWrap');
+const previewImg = document.getElementById('previewImg');
+const batchNote = document.getElementById('batchNote');
+const inspectBtn = document.getElementById('inspectBtn');
+const resetBtn = document.getElementById('resetBtn');
+const resultCard = document.getElementById('resultCard');
+const resultLabel = document.getElementById('resultLabel');
+const resultConf = document.getElementById('resultConf');
+const meterFill = document.getElementById('meterFill');
+const logPanel = document.getElementById('logPanel');
+const statusPill = document.getElementById('statusPill');
+const statusText = document.getElementById('statusText');
+const infoStrip = document.getElementById('infoStrip');
+const historyEmpty = document.getElementById('historyEmpty');
+const historyTable = document.getElementById('historyTable');
+const historyBody = document.getElementById('historyBody');
+const exportBtn = document.getElementById('exportBtn');
+
+// Check backend/model health on load so the page never silently fails
+fetch('/health').then(r => r.json()).then(data => {
+  if (data.model_loaded) {
+    statusPill.className = 'status-pill ready';
+    statusText.textContent = 'Model ready';
+  } else {
+    statusPill.className = 'status-pill error';
+    statusText.textContent = 'Model not loaded';
+  }
+}).catch(() => {
+  statusPill.className = 'status-pill error';
+  statusText.textContent = 'Backend unreachable';
+});
+
+// Load training metrics into the info strip; degrade gracefully if not available
+fetch('/model-info').then(r => r.json()).then(data => {
+  if (!data.available) {
+    infoStrip.innerHTML = `<div class="info-card"><div class="v">—</div><div class="l">Train the model to see stats here</div></div>`;
+    return;
+  }
+  const acc = data.final_val_accuracy != null ? (data.final_val_accuracy * 100).toFixed(1) + '%' : 'N/A';
+  infoStrip.innerHTML = `
+    <div class="info-card"><div class="v">${acc}</div><div class="l">Validation Accuracy</div></div>
+    <div class="info-card"><div class="v">${data.total_images ?? '—'}</div><div class="l">Training Images</div></div>
+    <div class="info-card"><div class="v">MobileNetV2</div><div class="l">Model Architecture</div></div>
+    <div class="info-card"><div class="v">${data.epochs_trained ?? '—'}</div><div class="l">Epochs Trained</div></div>
+  `;
+}).catch(() => {
+  infoStrip.innerHTML = '';
+});
+
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('drag'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+dropzone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropzone.classList.remove('drag');
+  if (e.dataTransfer.files.length) handleFiles(Array.from(e.dataTransfer.files));
+});
+fileInput.addEventListener('change', (e) => {
+  if (e.target.files.length) handleFiles(Array.from(e.target.files));
+});
+
+function handleFiles(files) {
+  const images = files.filter(f => f.type.startsWith('image/'));
+  if (!images.length) {
+    alert('Please choose image file(s) (JPG or PNG).');
+    return;
+  }
+  selectedFiles = images;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    previewImg.src = e.target.result;
+    previewWrap.style.display = 'block';
+    previewWrap.className = '';
+    dropzone.style.display = 'none';
+    inspectBtn.disabled = false;
+  };
+  reader.readAsDataURL(images[0]);
+
+  if (images.length > 1) {
+    batchNote.style.display = 'block';
+    batchNote.textContent = `${images.length} images selected — will be inspected one by one.`;
+    inspectBtn.textContent = `Run Inspection (${images.length})`;
+  } else {
+    batchNote.style.display = 'none';
+    inspectBtn.textContent = 'Run Inspection';
+  }
+}
+
+resetBtn.addEventListener('click', () => {
+  selectedFiles = [];
+  fileInput.value = '';
+  previewWrap.style.display = 'none';
+  batchNote.style.display = 'none';
+  dropzone.style.display = 'block';
+  inspectBtn.disabled = true;
+  inspectBtn.textContent = 'Run Inspection';
+  resultCard.style.display = 'none';
+});
+
+inspectBtn.addEventListener('click', async () => {
+  if (!selectedFiles.length) return;
+  inspectBtn.disabled = true;
+
+  for (let i = 0; i < selectedFiles.length; i++) {
+    const file = selectedFiles[i];
+    inspectBtn.textContent = selectedFiles.length > 1
+      ? `Inspecting ${i + 1}/${selectedFiles.length}...`
+      : 'Inspecting...';
+
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      const res = await fetch('/predict', { method: 'POST', body: formData });
+      const data = await res.json();
+
+      if (!res.ok) {
+        addLog('ERROR: ' + (data.error || 'prediction failed'), 'reject');
+        continue;
+      }
+
+      showResult(data, file);
+      addLog(`${data.timestamp}  ${data.plc_message}`, data.is_defective ? 'reject' : 'pass');
+      addHistoryRow(file, data);
+
+      if (data.is_defective) {
+        rejectCount++;
+        document.getElementById('rejectCount').textContent = rejectCount;
+      } else {
+        passCount++;
+        document.getElementById('passCount').textContent = passCount;
+      }
+    } catch (err) {
+      addLog('ERROR: could not reach server', 'reject');
+    }
+  }
+
+  inspectBtn.disabled = false;
+  inspectBtn.textContent = selectedFiles.length > 1 ? `Run Inspection (${selectedFiles.length})` : 'Run Inspection';
+});
+
+function showResult(data, file) {
+  resultCard.style.display = 'block';
+  resultCard.className = data.is_defective ? 'fail' : 'ok';
+  previewWrap.className = data.is_defective ? 'fail' : 'ok';
+  resultLabel.textContent = data.is_defective ? 'DEFECT DETECTED' : 'PASS — OK';
+  resultConf.textContent = `Confidence: ${data.confidence}%  (${file.name})`;
+  meterFill.style.width = data.confidence + '%';
+
+  const heatmapWrap = document.getElementById('heatmapWrap');
+  const heatmapImg = document.getElementById('heatmapImg');
+  if (data.heatmap) {
+    heatmapImg.src = data.heatmap;
+    heatmapWrap.style.display = 'block';
+  } else {
+    heatmapWrap.style.display = 'none';
+  }
+}
+
+function addLog(text, type) {
+  const empty = logPanel.querySelector('.empty');
+  if (empty) empty.remove();
+  const line = document.createElement('div');
+  line.className = 'line ' + type;
+  line.textContent = text;
+  logPanel.prepend(line);
+}
+
+function addHistoryRow(file, data) {
+  historyEmpty.style.display = 'none';
+  historyTable.style.display = 'table';
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td><img src="${e.target.result}" alt=""></td>
+      <td>${file.name}</td>
+      <td><span class="tag ${data.is_defective ? 'fail' : 'ok'}">${data.is_defective ? 'DEFECT' : 'OK'}</span></td>
+      <td>${data.confidence}%</td>
+      <td>${data.timestamp}</td>
+    `;
+    historyBody.prepend(row);
+  };
+  reader.readAsDataURL(file);
+
+  historyRows.push({
+    filename: file.name,
+    label: data.is_defective ? 'DEFECT' : 'OK',
+    confidence: data.confidence,
+    time: data.timestamp,
+  });
+}
+
+exportBtn.addEventListener('click', () => {
+  if (!historyRows.length) {
+    alert('No inspections to export yet.');
+    return;
+  }
+  const header = 'filename,result,confidence_percent,time\n';
+  const rows = historyRows.map(r => `${r.filename},${r.label},${r.confidence},${r.time}`).join('\n');
+  const csv = header + rows;
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'inspection_log.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+</script>
+
+</body>
+</html>
