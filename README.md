@@ -157,12 +157,3 @@ cv_defect_project/
 - Expand from binary to **multi-class** defect typing (scratch, dent, crack, missing part).
 - Swap MobileNetV2 for a **YOLOv8** detector for precise defect bounding boxes (Grad-CAM currently gives a rough attention region — YOLO would localize it exactly).
 
----
-
-## 👤 Author
-
-**Siddhant Tagare** — [GitHub](https://github.com/T-Sid-1025)
-
-Built for an interview project brief requiring computer vision +
-industrial automation understanding, applied to a real casting-defect
-inspection use case.
